@@ -19,12 +19,18 @@ func ServeWebSocket(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get the room parameter from the URL	query string
+	room := r.URL.Query().Get("room") // Fetch room from query string
+	if room == "" {
+		room = "general01" // Default room if not provided
+	}
+
 	// create a new client
 	client := &Client{
 		Hub:  hub,
 		Conn: conn,
 		Send: make(chan []byte),
-		Room: "general",
+		Room: room,
 	}
 
 	// register the client with the hub

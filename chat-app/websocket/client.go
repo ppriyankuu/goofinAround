@@ -49,7 +49,11 @@ func (c *Client) ReadPump() {
 		}
 
 		message = bytes.TrimSpace(message)
-		c.Hub.Broadcast <- message
+		// Include the room in the broadcast message
+		c.Hub.Broadcast <- Message{
+			Room:    c.Room,
+			Content: message,
+		}
 	}
 }
 
