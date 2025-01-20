@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package greet;
+
+// go package path
+option go_package = "learn_grpc/greet;greet";
+
+// Greeting service definition
+service GreetService {
+    rpc Greet (GreetRequest) returns (GreetResponse);
+}
+
+// Request message containing the name
+message GreetRequest {
+    string name = 1;
+}
+
+// Response message containing the greeting
+message GreetResponse {
+    string message = 1;
+}
