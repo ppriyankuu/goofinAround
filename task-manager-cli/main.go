@@ -1,26 +1,24 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"task-manager/cmd"
+	"task-manager/auth-service/config"
+	"task-manager/auth-service/database"
+	"task-manager/auth-service/routes"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Expected 'add', 'list', or 'delete' sub-commands")
-		os.Exit(1)
-	}
+	config.Init()
+	database.InitDB()
 
-	switch os.Args[1] {
-	case "add":
-		cmd.AddTask(os.Args[2:])
-	case "list":
-		cmd.ListTasks()
-	case "delete":
-		cmd.DeleteTask(os.Args[2:])
-	default:
-		fmt.Printf("Unknown sub-command: %s\n", os.Args[1])
-		os.Exit(1)
-	}
+	r := gin.Default()
+
+	// Middleware
+	// r.Use(middlewares.AuthMiddleware())
+
+	// Routes
+	routes.AuthRoutes(r)
+
+	r.Run(config.GetPort())
 }
