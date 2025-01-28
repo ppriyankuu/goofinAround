@@ -2,70 +2,71 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"math/rand"
 	"sync"
 	"time"
 )
 
-type Message struct {
-	chats   []string
-	friends []string
+type BankAccount struct {
+	balance int
+	mutex   sync.Mutex
+}
+
+func (account *BankAccount) Deposit(amount int, wg *sync.WaitGroup, r *rand.Rand) {
+	defer wg.Done() // ensures the wait group is notified when this function exits
+
+	// simulating some processing time for the deposit
+	time.Sleep(time.Duration(r.Intn(100)) * time.Millisecond)
+
+	account.mutex.Lock()         // locks the mutex to protect the balance
+	defer account.mutex.Unlock() // ensures the mutex is unlocked when the function exits
+
+	fmt.Printf("Depositing %d to account\n", amount)
+	account.balance += amount
+	fmt.Printf("New balance after deposit: %d\n", account.balance)
+}
+
+func (account *BankAccount) Withdraw(amount int, wg *sync.WaitGroup, r *rand.Rand) {
+	defer wg.Done() // ensures the wait group is notified when this function exits
+
+	// simulates some processing time for the withdrawal
+	time.Sleep(time.Duration(r.Intn(100)) * time.Millisecond)
+
+	account.mutex.Lock()         // locks the mutex to protect the balance
+	defer account.mutex.Unlock() // ensures the mutex is unlocked when the function exits
+
+	if account.balance >= amount {
+		fmt.Printf("Withdrawing %d from account\n", amount)
+		account.balance -= amount
+		fmt.Printf("New balance after withdrawal: %d\n", account.balance)
+	} else {
+		fmt.Printf("Failed to withdraw %d: insufficient balance\n", amount)
+	}
 }
 
 func main() {
-	now := time.Now()
+	var wg sync.WaitGroup
+	account := BankAccount{balance: 1000} // Initial balance of 1000
 
-	id := getUserId("priyanku")
-	println(id)
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
 
-	wg := &sync.WaitGroup{}
-	ch := make(chan *Message, 2)
+	// simulating multiple customers depositing and withdrawing concurrently
+	for i := 1; i <= 5; i++ {
+		wg.Add(2) // Add 2 to the wait group for each iteration (1 deposit + 1 withdrawal)
 
-	wg.Add(2)
+		go func(customerID int) {
+			// Simulate a deposit
+			account.Deposit(100*customerID, &wg, r)
+		}(i)
 
-	go getUserChats(id, ch, wg)
-	go getUserFriends(id, ch, wg)
-
-	wg.Wait()
-	close(ch)
-
-	for msg := range ch {
-		log.Println(msg)
+		go func(customerID int) {
+			// Simulate a withdrawal
+			account.Withdraw(50*customerID, &wg, r)
+		}(i)
 	}
 
-	log.Println(time.Since(now))
-}
+	wg.Wait() // Wait for all goroutines to finish
 
-func getUserFriends(_ string, ch chan<- *Message, wg *sync.WaitGroup) {
-	time.Sleep(time.Second * 2)
-
-	ch <- &Message{
-		friends: []string{
-			"John",
-			"someone",
-			"no one",
-			"anonymous",
-			"that one",
-		},
-	}
-
-	wg.Done()
-}
-
-func getUserChats(_ string, ch chan<- *Message, wg *sync.WaitGroup) {
-	time.Sleep(time.Second * 1)
-
-	ch <- &Message{
-		chats: []string{
-			"John",
-			"someone",
-			"no one",
-		},
-	}
-	wg.Done()
-}
-
-func getUserId(name string) string {
-	time.Sleep(time.Second * 1)
-	return fmt.Sprintf("%s-2", name)
+	fmt.Printf("Final account balance: %d\n", account.balance)
 }
