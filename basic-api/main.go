@@ -1,29 +1,25 @@
 package main
 
 import (
-	"basic-api/database"
-	"basic-api/models"
-	"basic-api/routes"
-	"log"
+	"basic-api/api"
+	"basic-api/config"
+	"basic-api/middlewares"
 
-	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func main() {
-	database.ConnectDB()
+	config.LoadConfig()
 
-	err := database.DB.AutoMigrate(&models.Post{})
-	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
-	}
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
 
-	r := gin.Default()
+	r := api.SetupRouter()
 
-	r.GET("/posts", routes.GetPosts)
-	r.GET("/posts/:id", routes.GetPost)
-	r.POST("/posts", routes.CreatePost)
-	r.PUT("/posts/:id", routes.UpdatePost)
-	r.DELETE("/posts/:id", routes.DeletePost)
+	r.Use(middlewares.CORS())
+	r.Use(middlewares.Logging(logger))
+	r.Use(middlewares.Recovery(logger))
 
-	r.Run(":8080")
+	// Start server
+	r.Run(":" + config.AppPort())
 }

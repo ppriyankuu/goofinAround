@@ -1,0 +1,7 @@
+app:
+  port: "8080"
+auth:
+  jwt_secret: "top-secret-key"
+rate_limit: 5
+cors:
+  allowed_origin: "http://localhost:3000"
