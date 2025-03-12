@@ -3,6 +3,7 @@ module url-shortener
 go 1.24.0
 
 require (
+	github.com/aidarkhanov/nanoid/v2 v2.0.5 // indirect
 	github.com/bytedance/sonic v1.13.1 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
