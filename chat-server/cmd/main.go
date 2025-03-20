@@ -1,10 +1,10 @@
 package main
 
 import (
-	"chat-server/internal/config"
-	"chat-server/internal/repository"
-	"chat-server/internal/services"
-	"chat-server/internal/websockets"
+	"chat-server/internals/config"
+	"chat-server/internals/repository"
+	"chat-server/internals/services"
+	"chat-server/internals/websockets"
 	"chat-server/pkg/cache"
 	"chat-server/pkg/db"
 	"chat-server/pkg/pubsub"
