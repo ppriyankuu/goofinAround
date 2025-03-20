@@ -1,7 +1,7 @@
 package pubsub
 
 import (
-	"chat-server/internal/models"
+	"chat-server/internals/models"
 	"context"
 	"log"
 
