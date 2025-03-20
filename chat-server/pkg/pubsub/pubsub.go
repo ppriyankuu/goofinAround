@@ -1,58 +1,48 @@
 package pubsub
 
 import (
+	"chat-server/internal/models"
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/go-redis/redis/v8"
 )
 
+var (
+	rdb *redis.Client
+	ctx context.Context
+)
+
+func InitPubSub(addr string) {
+	rdb = redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: "", // no password set
+		DB:       0,  // default DB
+	})
+
+	// pinging the Redis server to ensure it's up
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+
+	log.Println("Connected to Redis for Pub/Sub")
+}
+
 type PubSub struct {
 	Client *redis.Client
 }
 
-func NewPubSub(addr, password string, db int) *PubSub {
-	client := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       db,
-	})
-	return &PubSub{
-		Client: client,
-	}
+func Publish(message models.Message) error {
+	return rdb.Publish(ctx, message.RoomID, message.Content).Err()
 }
 
-func (p *PubSub) Publish(ctx context.Context, channel string, message interface{}) error {
-	data, err := json.Marshal(message)
-	if err != nil {
-		return err
-	}
-	return p.Client.Publish(ctx, channel, data).Err()
-}
+func Subscribe(roomID string, handler func(string)) {
+	pubsub := rdb.Subscribe(ctx, roomID)
+	ch := pubsub.Channel()
 
-func (p *PubSub) Subscribe(ctx context.Context, channel string, handler func(message string)) error {
-	subscription := p.Client.Subscribe(ctx, channel)
-	defer func() {
-		if err := subscription.Close(); err != nil {
-			log.Printf("Failed to close subscription: %v", err)
-		}
-	}()
-
-	// Processing incoming messages.
-	ch := subscription.Channel()
-	for {
-		select {
-		case <-ctx.Done():
-			// Gracefully exits if the context is canceled.
-			return ctx.Err()
-		case msg := <-ch:
-			if msg == nil {
-				// Channel closed or error occurred.
-				return fmt.Errorf("channel closed unexpectedly")
-			}
+	go func() {
+		for msg := range ch {
 			handler(msg.Payload)
 		}
-	}
+	}()
 }

@@ -2,55 +2,36 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 )
 
-type Cache struct {
-	Client *redis.Client
-}
+var (
+	rdb *redis.Client
+	ctx context.Context
+)
 
-func NewCache(addr, password string, db int) *Cache {
-	client := redis.NewClient(&redis.Options{
+func InitCache(addr string) {
+	rdb = redis.NewClient(&redis.Options{
 		Addr:     addr,
-		Password: password,
-		DB:       db,
+		Password: "", // no password set
+		DB:       0,  // default DB
 	})
-	return &Cache{
-		Client: client,
+
+	// pinging the Redis server to ensure it's up
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
+
+	log.Println("Connected to Redis")
 }
 
-func (c *Cache) Close() error {
-	if c.Client == nil {
-		return nil
-	}
-	return c.Client.Close()
+func SetMessage(roomID, message string) error {
+	return rdb.Set(ctx, roomID, message, 10*time.Minute).Err()
 }
 
-func (c *Cache) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	data, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-	err = c.Client.Set(ctx, key, data, expiration).Err()
-	if err != nil {
-		log.Printf("Failed to set key %s in cache: %v", key, err)
-	}
-	return err
-}
-
-func (c *Cache) Get(ctx context.Context, key string) (string, error) {
-	val, err := c.Client.Get(ctx, key).Result()
-	if err == redis.Nil {
-		return "", fmt.Errorf("key %s not found in cache", key)
-	} else if err != nil {
-		log.Printf("Failed to get key %s from cache: %v", key, err)
-		return "", err
-	}
-	return val, nil
+func GetMessage(roomID string) (string, error) {
+	return rdb.Get(ctx, roomID).Result()
 }
